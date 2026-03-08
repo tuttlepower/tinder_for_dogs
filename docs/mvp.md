@@ -94,7 +94,7 @@ The user sets:
 
 - city
 - preferred meetup style: one-on-one, group, or either
-- preferred radius in kilometers
+- preferred radius in miles
 
 ### 4. Create a dog profile
 
@@ -140,7 +140,7 @@ Fields:
 - `name`
 - `email`
 - `city`
-- `preferred_radius_km`
+- `preferred_radius_miles`
 - `meetup_style`
 - `created_at`
 
@@ -370,7 +370,7 @@ The MVP spec is complete when it supports all of the following:
 - a new user can create an account and complete onboarding
 - a user can create one dog profile with at least one photo
 - incomplete dog profiles are prevented from entering discovery
-- a user can view eligible nearby dogs within their preferred radius
+- a user can view eligible nearby dogs within their preferred radius in miles
 - a user can like or pass dog profiles
 - a mutual like creates a match automatically
 - matched users can exchange messages
@@ -393,3 +393,4 @@ Possible future additions after the core loop is validated:
 - reputation systems
 - richer map exploration and park discovery
 - monetization or premium features
+

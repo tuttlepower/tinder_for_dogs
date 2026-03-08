@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
+import { hasSupabaseEnv } from "./lib/supabase";
 
-type View = "home" | "profile" | "discovery" | "matches" | "chat" | "parks" | "spec";
+type View = "home" | "profile" | "discovery" | "matches" | "chat" | "parks";
 type MeetupStyle = "one-on-one" | "group" | "either";
 type SwipeAction = "like" | "pass";
 
@@ -8,7 +9,7 @@ type OwnerProfile = {
   name: string;
   email: string;
   city: string;
-  preferredRadiusKm: number;
+  preferredRadiusMiles: number;
   meetupStyle: MeetupStyle;
 };
 
@@ -34,7 +35,7 @@ type CandidateDog = {
   temperament: string;
   leashBehavior: string;
   compatibility: number;
-  distanceKm: number;
+  distanceMiles: number;
   neighborhood: string;
   favoriteParkId: string;
   ownerName: string;
@@ -77,7 +78,7 @@ const sampleCandidates: CandidateDog[] = [
     temperament: "Friendly, playful, social",
     leashBehavior: "Good with slight pulling",
     compatibility: 87,
-    distanceKm: 1.8,
+    distanceMiles: 1.8,
     neighborhood: "Columbia Heights",
     favoriteParkId: "meridian",
     ownerName: "Maya",
@@ -95,7 +96,7 @@ const sampleCandidates: CandidateDog[] = [
     temperament: "Goofy, affectionate, polite",
     leashBehavior: "Very calm",
     compatibility: 78,
-    distanceKm: 3.4,
+    distanceMiles: 3.4,
     neighborhood: "Adams Morgan",
     favoriteParkId: "shaw",
     ownerName: "Chris",
@@ -113,7 +114,7 @@ const sampleCandidates: CandidateDog[] = [
     temperament: "Curious, independent, selective",
     leashBehavior: "Excellent",
     compatibility: 72,
-    distanceKm: 2.2,
+    distanceMiles: 2.2,
     neighborhood: "Logan Circle",
     favoriteParkId: "logan",
     ownerName: "Jules",
@@ -123,42 +124,11 @@ const sampleCandidates: CandidateDog[] = [
   },
 ];
 
-const specSections = [
-  {
-    title: "In scope",
-    points: [
-      "Owner signup and onboarding",
-      "One active dog profile per owner",
-      "Nearby discovery with like or pass",
-      "Mutual matches and basic owner chat",
-      "Park suggestions for public meetups",
-    ],
-  },
-  {
-    title: "Ranking rules",
-    points: [
-      "Profiles must be within preferred radius",
-      "Profiles need a complete dog card and photo",
-      "Discovery favors distance, size, energy, temperament, and park overlap",
-      "Swiping remains the final decision",
-    ],
-  },
-  {
-    title: "Safety guardrails",
-    points: [
-      "No precise home addresses are shown",
-      "Block and report are available in match contexts",
-      "First meetings are guided toward public dog parks",
-      "Owners remain responsible for dog behavior",
-    ],
-  },
-];
-
 const initialOwner: OwnerProfile = {
   name: "Travis",
   email: "travis@example.com",
   city: "Washington, DC",
-  preferredRadiusKm: 5,
+  preferredRadiusMiles: 5,
   meetupStyle: "either",
 };
 
@@ -175,13 +145,12 @@ const initialDog: DogProfile = {
 };
 
 const tabs: { id: View; label: string }[] = [
-  { id: "home", label: "Overview" },
+  { id: "home", label: "Home" },
   { id: "profile", label: "Profile" },
   { id: "discovery", label: "Discover" },
   { id: "matches", label: "Matches" },
   { id: "chat", label: "Chat" },
   { id: "parks", label: "Parks" },
-  { id: "spec", label: "Spec" },
 ];
 
 function parkName(parkId: string) {
@@ -282,11 +251,11 @@ export default function App() {
       <header className="topbar">
         <div>
           <p className="eyebrow">Dog Park Match</p>
-          <h1>Dog-first playdate matching with a complete MVP loop.</h1>
+          <h1>Find dogs nearby that actually match your dog's vibe.</h1>
         </div>
         <div className="topbar-summary">
           <span className={`status-pill ${profileComplete ? "ready" : "pending"}`}>
-            {profileComplete ? "Profile complete" : "Finish onboarding"}
+            {profileComplete ? "Ready to discover" : "Complete profile"}
           </span>
           <span className="status-pill">{matches.length} matches</span>
         </div>
@@ -311,43 +280,50 @@ export default function App() {
             <div className="stack-lg">
               <div className="hero-panel">
                 <div>
-                  <p className="eyebrow">Usable MVP</p>
-                  <h2>From signup to first park plan in one guided flow.</h2>
+                  <p className="eyebrow">Welcome back</p>
+                  <h2>{dog.name} is ready for a new park friend.</h2>
                   <p className="lead">
-                    This demo now mirrors the real product shape: onboarding, one dog profile,
-                    discovery, mutual matches, owner chat, and public park meetup context.
+                    Browse nearby dogs, look for a good energy match, and move the conversation into a
+                    public park meetup when it feels right.
                   </p>
                 </div>
                 <div className="metric-grid">
                   <article>
-                    <strong>{owner.preferredRadiusKm} km</strong>
-                    <span>preferred radius</span>
+                    <strong>{owner.preferredRadiusMiles} mi</strong>
+                    <span>search radius</span>
                   </article>
                   <article>
                     <strong>{remainingCandidates.length}</strong>
-                    <span>dogs left in queue</span>
+                    <span>dogs nearby</span>
                   </article>
                   <article>
                     <strong>{matches.length}</strong>
-                    <span>live mutual matches</span>
+                    <span>active matches</span>
                   </article>
                 </div>
               </div>
 
               <div className="card-grid two-up">
                 <article className="info-card warm">
-                  <h3>What the first release proves</h3>
-                  <ul className="plain-list">
-                    <li>Owners will complete a dog-first profile.</li>
-                    <li>Nearby discovery feels faster than waiting at a park.</li>
-                    <li>Matches convert into real conversations about public meetups.</li>
-                  </ul>
+                  <p className="card-kicker">Tonight's best bet</p>
+                  <h3>{currentCandidate ? `${currentCandidate.name} is ${currentCandidate.distanceMiles} mi away` : "No dogs in queue right now"}</h3>
+                  <p>
+                    {currentCandidate
+                      ? `${currentCandidate.ownerName} says ${currentCandidate.name} does best with ${currentCandidate.temperament.toLowerCase()} dogs.`
+                      : "Try widening your radius or check back after more dogs join nearby."}
+                  </p>
+                  {currentCandidate ? (
+                    <button className="button primary" type="button" onClick={() => setActiveView("discovery")}>
+                      Open discovery
+                    </button>
+                  ) : null}
                 </article>
                 <article className="info-card soft">
-                  <h3>Why this structure matters</h3>
+                  <p className="card-kicker">Meetup vibe</p>
+                  <h3>{parkName(dog.favoriteParkId)}</h3>
                   <p>
-                    We are keeping the scope tight enough to build quickly while leaving clean seams
-                    for Supabase auth, storage, realtime chat, and persisted swipes.
+                    Your profile highlights this park first when a conversation starts, so matches have an
+                    easy public meetup suggestion right away.
                   </p>
                 </article>
               </div>
@@ -358,12 +334,11 @@ export default function App() {
             <div className="stack-lg">
               <div className="section-heading">
                 <div>
-                  <p className="eyebrow">Owner onboarding</p>
-                  <h2>Create the owner and dog profile required for discovery.</h2>
+                  <p className="eyebrow">Profile</p>
+                  <h2>Set up your info so the right dogs see you.</h2>
                 </div>
                 <p className="helper-copy">
-                  The MVP only supports one active dog profile per owner, which keeps onboarding and
-                  matching simple for v1.
+                  The better this feels to fill out, the faster discovery will feel natural.
                 </p>
               </div>
 
@@ -388,10 +363,10 @@ export default function App() {
                       type="range"
                       min="1"
                       max="20"
-                      value={owner.preferredRadiusKm}
-                      onChange={(event) => handleOwnerChange("preferredRadiusKm", Number(event.target.value))}
+                      value={owner.preferredRadiusMiles}
+                      onChange={(event) => handleOwnerChange("preferredRadiusMiles", Number(event.target.value))}
                     />
-                    <span className="field-hint">{owner.preferredRadiusKm} km</span>
+                    <span className="field-hint">{owner.preferredRadiusMiles} mi</span>
                   </label>
                   <label>
                     Meetup style
@@ -462,12 +437,11 @@ export default function App() {
             <div className="stack-lg">
               <div className="section-heading">
                 <div>
-                  <p className="eyebrow">Discovery</p>
-                  <h2>Swipe through eligible nearby dogs.</h2>
+                  <p className="eyebrow">Discover</p>
+                  <h2>Nearby dogs picked for your current radius and vibe.</h2>
                 </div>
                 <p className="helper-copy">
-                  Cards are sorted by compatibility hints and filtered by your radius, park overlap,
-                  and profile completeness.
+                  Like the dogs that feel right. Pass the ones that don't.
                 </p>
               </div>
 
@@ -487,7 +461,7 @@ export default function App() {
                           {currentCandidate.breed} � {currentCandidate.size} � {currentCandidate.neighborhood}
                         </p>
                       </div>
-                      <span className="distance-pill">{currentCandidate.distanceKm} km away</span>
+                      <span className="distance-pill">{currentCandidate.distanceMiles} mi away</span>
                     </div>
 
                     <p className="dog-blurb">{currentCandidate.blurb}</p>
@@ -523,11 +497,11 @@ export default function App() {
                 </article>
               ) : (
                 <article className="empty-card">
-                  <h3>{profileComplete ? "No more dogs in your queue" : "Finish your profile first"}</h3>
+                  <h3>{profileComplete ? "No more dogs nearby right now" : "Complete your profile to start browsing"}</h3>
                   <p>
                     {profileComplete
-                      ? "The MVP needs a graceful empty state when no eligible dogs are available nearby."
-                      : "Discovery unlocks only after the owner and dog profile are complete, including a favorite park context."}
+                      ? "You are caught up for the moment. Check back later or widen your radius for more dogs."
+                      : "Add your dog details and favorite park first so discovery feels relevant from the start."}
                   </p>
                 </article>
               )}
@@ -538,8 +512,8 @@ export default function App() {
             <div className="stack-lg">
               <div className="section-heading">
                 <div>
-                  <p className="eyebrow">Mutual likes</p>
-                  <h2>Matches appear automatically when both dogs like each other.</h2>
+                  <p className="eyebrow">Matches</p>
+                  <h2>Dogs who liked you back.</h2>
                 </div>
               </div>
 
@@ -564,7 +538,7 @@ export default function App() {
                 ) : (
                   <article className="empty-card compact">
                     <h3>No matches yet</h3>
-                    <p>Like a dog who already likes you back and the match will appear here instantly.</p>
+                    <p>Start liking dogs in discovery and your mutual matches will show up here.</p>
                   </article>
                 )}
               </div>
@@ -575,8 +549,8 @@ export default function App() {
             <div className="stack-lg">
               <div className="section-heading">
                 <div>
-                  <p className="eyebrow">Owner chat</p>
-                  <h2>Messaging unlocks only after a match.</h2>
+                  <p className="eyebrow">Chat</p>
+                  <h2>Keep it light and move toward a public park meetup.</h2>
                 </div>
                 <div className="inline-actions">
                   <button className="mini-action" type="button">Block</button>
@@ -611,17 +585,17 @@ export default function App() {
                       rows={3}
                       value={draftMessage}
                       onChange={(event) => setDraftMessage(event.target.value)}
-                      placeholder="Suggest a park meetup or ask about play style."
+                      placeholder="Suggest a park meetup or ask how their dog likes to play."
                     />
                     <button className="button primary" type="button" onClick={sendMessage}>
-                      Send message
+                      Send
                     </button>
                   </div>
                 </article>
               ) : (
                 <article className="empty-card">
                   <h3>No active chat yet</h3>
-                  <p>Once you get a mutual match, the chat opens here with a suggested park context.</p>
+                  <p>Once you have a match, your conversation will show up here.</p>
                 </article>
               )}
             </div>
@@ -631,11 +605,11 @@ export default function App() {
             <div className="stack-lg">
               <div className="section-heading">
                 <div>
-                  <p className="eyebrow">Park context</p>
-                  <h2>Meetup planning stays lightweight in v1.</h2>
+                  <p className="eyebrow">Parks</p>
+                  <h2>Good public spots for a first intro.</h2>
                 </div>
                 <p className="helper-copy">
-                  Parks support the main loop but are not a standalone exploration product in the MVP.
+                  These stay lightweight so it is easy to pick a place without overcomplicating the app.
                 </p>
               </div>
 
@@ -645,31 +619,7 @@ export default function App() {
                     <span className="park-city">{park.city}</span>
                     <h3>{park.name}</h3>
                     <p>{park.vibe}</p>
-                    <strong>{dog.favoriteParkId === park.id ? "Saved as your favorite park" : "Available for meetup suggestions"}</strong>
-                  </article>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activeView === "spec" && (
-            <div className="stack-lg">
-              <div className="section-heading">
-                <div>
-                  <p className="eyebrow">Build-ready spec</p>
-                  <h2>The app and spec are aligned around one usable MVP.</h2>
-                </div>
-              </div>
-
-              <div className="card-grid three-up">
-                {specSections.map((section) => (
-                  <article className="spec-card" key={section.title}>
-                    <h3>{section.title}</h3>
-                    <ul className="plain-list">
-                      {section.points.map((point) => (
-                        <li key={point}>{point}</li>
-                      ))}
-                    </ul>
+                    <strong>{dog.favoriteParkId === park.id ? "Saved to your profile" : "Available for meetups"}</strong>
                   </article>
                 ))}
               </div>
@@ -679,7 +629,7 @@ export default function App() {
 
         <aside className="sidebar-panel">
           <section className="sidebar-card profile-card">
-            <p className="eyebrow">Your profile</p>
+            <p className="eyebrow">Your dog</p>
             <h2>{dog.name}</h2>
             <p>{dog.breed} � {dog.age} � {dog.energyLevel}</p>
             <ul className="plain-list compact">
@@ -691,21 +641,21 @@ export default function App() {
           </section>
 
           <section className="sidebar-card checklist-card">
-            <p className="eyebrow">Acceptance checks</p>
+            <p className="eyebrow">At a glance</p>
             <ul className="check-list">
-              <li className={owner.name && owner.email ? "done" : ""}>Account and onboarding info captured</li>
-              <li className={profileComplete ? "done" : ""}>Dog profile is complete enough for discovery</li>
-              <li className={Object.keys(swipes).length > 0 ? "done" : ""}>User can like or pass dogs</li>
-              <li className={matches.length > 0 ? "done" : ""}>Mutual match appears automatically</li>
-              <li className={selectedMatch?.messages.length ? "done" : ""}>Matched owners can message</li>
+              <li className={profileComplete ? "done" : ""}>Profile is ready for discovery</li>
+              <li className={Object.keys(swipes).length > 0 ? "done" : ""}>You have started browsing dogs</li>
+              <li className={matches.length > 0 ? "done" : ""}>You have mutual matches</li>
+              <li className={selectedMatch?.messages.length ? "done" : ""}>A conversation is active</li>
             </ul>
           </section>
 
           <section className="sidebar-card next-card">
-            <p className="eyebrow">Next integration</p>
+            <p className="eyebrow">Connection</p>
             <p>
-              This UI is ready to swap its local state for Supabase auth, tables, storage, and realtime
-              chat once your environment variables are added.
+              {hasSupabaseEnv
+                ? "Supabase env vars are configured, so this mock UI is ready to be replaced with real auth and data next."
+                : "Add your Supabase frontend env vars in Vercel and locally when you are ready to hook up real data."}
             </p>
           </section>
         </aside>

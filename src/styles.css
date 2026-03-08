@@ -88,7 +88,7 @@ dd {
 .dog-card,
 .empty-card,
 .chat-shell,
-.spec-card,
+
 .park-card,
 .match-card {
   background: var(--panel);
@@ -276,7 +276,7 @@ dd {
 }
 
 .info-card,
-.spec-card,
+
 .park-card {
   border-radius: 26px;
   padding: 1.35rem;
@@ -579,6 +579,15 @@ textarea {
   }
 }
 
+.card-kicker {
+  display: inline-block;
+  margin-bottom: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  color: var(--accent-strong);
+}
+
 @media (max-width: 640px) {
   .app-shell {
     width: min(100% - 1rem, 1240px);
@@ -593,7 +602,7 @@ textarea {
   .chat-shell,
   .empty-card,
   .info-card,
-  .spec-card,
+  
   .park-card {
     padding: 1.1rem;
   }
@@ -608,3 +617,6 @@ textarea {
     max-width: 100%;
   }
 }
+
+
+
