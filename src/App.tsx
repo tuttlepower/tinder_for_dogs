@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
-import { hasSupabaseEnv } from "./lib/supabase";
+import { useEffect, useMemo, useState } from "react";
+import { hasSupabaseEnv, supabase } from "./lib/supabase";
 
 type View = "home" | "profile" | "discovery" | "matches" | "chat" | "parks";
 type MeetupStyle = "one-on-one" | "group" | "either";
 type SwipeAction = "like" | "pass";
+type AuthMode = "sign-in" | "sign-up";
 
 type OwnerProfile = {
   name: string;
@@ -11,6 +12,7 @@ type OwnerProfile = {
   city: string;
   preferredRadiusMiles: number;
   meetupStyle: MeetupStyle;
+  shareApproximateLocation: boolean;
 };
 
 type DogProfile = {
@@ -130,6 +132,7 @@ const initialOwner: OwnerProfile = {
   city: "Washington, DC",
   preferredRadiusMiles: 5,
   meetupStyle: "either",
+  shareApproximateLocation: false,
 };
 
 const initialDog: DogProfile = {
@@ -165,9 +168,22 @@ export default function App() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [draftMessage, setDraftMessage] = useState("Want to meet at Meridian this weekend?");
+  const [authMode, setAuthMode] = useState<AuthMode>("sign-up");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authStatus, setAuthStatus] = useState("Connect your account to save your dog's profile.");
+  const [authLoading, setAuthLoading] = useState(false);
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
 
   const profileComplete = Boolean(
-    owner.name && owner.email && owner.city && dog.name && dog.breed && dog.bio && dog.favoriteParkId,
+    owner.name &&
+      owner.email &&
+      owner.city &&
+      dog.name &&
+      dog.breed &&
+      dog.bio &&
+      dog.favoriteParkId &&
+      owner.shareApproximateLocation,
   );
 
   const remainingCandidates = useMemo(
@@ -182,12 +198,99 @@ export default function App() {
     [matches, selectedMatchId],
   );
 
+  useEffect(() => {
+    if (!hasSupabaseEnv || !supabase) {
+      return undefined;
+    }
+
+    let isMounted = true;
+
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!isMounted) return;
+      if (error) {
+        setAuthStatus(error.message);
+        return;
+      }
+      const email = data.session?.user.email ?? null;
+      setSessionEmail(email);
+      if (email) {
+        setOwner((current) => ({ ...current, email }));
+        setAuthStatus("You're signed in and ready to save progress.");
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const email = session?.user.email ?? null;
+      setSessionEmail(email);
+      if (email) {
+        setOwner((current) => ({ ...current, email }));
+        setAuthStatus("You're signed in and ready to save progress.");
+      } else {
+        setAuthStatus("Connect your account to save your dog's profile.");
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
   function handleOwnerChange<K extends keyof OwnerProfile>(key: K, value: OwnerProfile[K]) {
     setOwner((current) => ({ ...current, [key]: value }));
   }
 
   function handleDogChange<K extends keyof DogProfile>(key: K, value: DogProfile[K]) {
     setDog((current) => ({ ...current, [key]: value }));
+  }
+
+  async function handleAuthSubmit() {
+    if (!hasSupabaseEnv || !supabase) {
+      setAuthStatus("Supabase env vars are missing. Add them locally and in Vercel first.");
+      return;
+    }
+
+    if (!authEmail || !authPassword) {
+      setAuthStatus("Enter both email and password.");
+      return;
+    }
+
+    setAuthLoading(true);
+    setAuthStatus(authMode === "sign-up" ? "Creating your account..." : "Signing you in...");
+
+    const result =
+      authMode === "sign-up"
+        ? await supabase.auth.signUp({ email: authEmail, password: authPassword })
+        : await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+
+    setAuthLoading(false);
+
+    if (result.error) {
+      setAuthStatus(result.error.message);
+      return;
+    }
+
+    setOwner((current) => ({ ...current, email: authEmail }));
+    setAuthStatus(
+      authMode === "sign-up"
+        ? "Account created. Check your inbox if email confirmation is enabled."
+        : "Signed in. Your profile can now be saved to Supabase.",
+    );
+  }
+
+  async function handleSignOut() {
+    if (!supabase) return;
+
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      setAuthStatus(error.message);
+      return;
+    }
+
+    setSessionEmail(null);
+    setAuthStatus("Signed out.");
   }
 
   function handleSwipe(action: SwipeAction) {
@@ -276,6 +379,59 @@ export default function App() {
 
       <main className="dashboard-grid">
         <section className="primary-panel">
+          <section className="auth-panel">
+            <div>
+              <p className="eyebrow">Account</p>
+              <h2>{sessionEmail ? "You're connected to Supabase." : "Sign in to save your profile."}</h2>
+              <p className="helper-copy">{authStatus}</p>
+            </div>
+
+            {sessionEmail ? (
+              <div className="auth-connected">
+                <span className="status-pill ready">{sessionEmail}</span>
+                <button className="button ghost" type="button" onClick={handleSignOut}>
+                  Sign out
+                </button>
+              </div>
+            ) : (
+              <div className="auth-form-wrap">
+                <div className="auth-toggle" role="tablist" aria-label="Authentication mode">
+                  <button
+                    className={`mini-tab ${authMode === "sign-up" ? "active" : ""}`}
+                    type="button"
+                    onClick={() => setAuthMode("sign-up")}
+                  >
+                    Sign up
+                  </button>
+                  <button
+                    className={`mini-tab ${authMode === "sign-in" ? "active" : ""}`}
+                    type="button"
+                    onClick={() => setAuthMode("sign-in")}
+                  >
+                    Sign in
+                  </button>
+                </div>
+                <div className="auth-form">
+                  <input
+                    type="email"
+                    value={authEmail}
+                    onChange={(event) => setAuthEmail(event.target.value)}
+                    placeholder="Email"
+                  />
+                  <input
+                    type="password"
+                    value={authPassword}
+                    onChange={(event) => setAuthPassword(event.target.value)}
+                    placeholder="Password"
+                  />
+                  <button className="button primary" type="button" onClick={handleAuthSubmit} disabled={authLoading}>
+                    {authLoading ? "Working..." : authMode === "sign-up" ? "Create account" : "Sign in"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
+
           {activeView === "home" && (
             <div className="stack-lg">
               <div className="hero-panel">
@@ -338,7 +494,7 @@ export default function App() {
                   <h2>Set up your info so the right dogs see you.</h2>
                 </div>
                 <p className="helper-copy">
-                  The better this feels to fill out, the faster discovery will feel natural.
+                  We only show city or neighborhood-level location, never an exact home address.
                 </p>
               </div>
 
@@ -378,6 +534,18 @@ export default function App() {
                       <option value="group">Group</option>
                       <option value="either">Either</option>
                     </select>
+                  </label>
+                  <label className="toggle-field">
+                    <span>Are you okay sharing your approximate neighborhood with nearby matches?</span>
+                    <button
+                      className={`toggle-button ${owner.shareApproximateLocation ? "enabled" : ""}`}
+                      type="button"
+                      aria-pressed={owner.shareApproximateLocation}
+                      onClick={() => handleOwnerChange("shareApproximateLocation", !owner.shareApproximateLocation)}
+                    >
+                      {owner.shareApproximateLocation ? "Yes, share approximate location" : "No, keep it city-only"}
+                    </button>
+                    <small>Only approximate area is shared. Exact addresses are never shown.</small>
                   </label>
                 </article>
 
@@ -440,9 +608,7 @@ export default function App() {
                   <p className="eyebrow">Discover</p>
                   <h2>Nearby dogs picked for your current radius and vibe.</h2>
                 </div>
-                <p className="helper-copy">
-                  Like the dogs that feel right. Pass the ones that don't.
-                </p>
+                <p className="helper-copy">Like the dogs that feel right. Pass the ones that don't.</p>
               </div>
 
               {profileComplete && currentCandidate ? (
@@ -455,10 +621,10 @@ export default function App() {
                     <div className="dog-headline">
                       <div>
                         <h3>
-                          {currentCandidate.name} � {currentCandidate.age}
+                          {currentCandidate.name} - {currentCandidate.age}
                         </h3>
                         <p>
-                          {currentCandidate.breed} � {currentCandidate.size} � {currentCandidate.neighborhood}
+                          {currentCandidate.breed} - {currentCandidate.size} - {currentCandidate.neighborhood}
                         </p>
                       </div>
                       <span className="distance-pill">{currentCandidate.distanceMiles} mi away</span>
@@ -501,7 +667,7 @@ export default function App() {
                   <p>
                     {profileComplete
                       ? "You are caught up for the moment. Check back later or widen your radius for more dogs."
-                      : "Add your dog details and favorite park first so discovery feels relevant from the start."}
+                      : "Add your dog details and confirm your location preference first so discovery feels relevant from the start."}
                   </p>
                 </article>
               )}
@@ -631,11 +797,12 @@ export default function App() {
           <section className="sidebar-card profile-card">
             <p className="eyebrow">Your dog</p>
             <h2>{dog.name}</h2>
-            <p>{dog.breed} � {dog.age} � {dog.energyLevel}</p>
+            <p>{dog.breed} - {dog.age} - {dog.energyLevel}</p>
             <ul className="plain-list compact">
               <li>Owner: {owner.name}</li>
               <li>City: {owner.city}</li>
               <li>Meetup style: {owner.meetupStyle}</li>
+              <li>Approximate location sharing: {owner.shareApproximateLocation ? "On" : "Off"}</li>
               <li>Favorite park: {parkName(dog.favoriteParkId)}</li>
             </ul>
           </section>
@@ -643,6 +810,7 @@ export default function App() {
           <section className="sidebar-card checklist-card">
             <p className="eyebrow">At a glance</p>
             <ul className="check-list">
+              <li className={Boolean(sessionEmail) ? "done" : ""}>Account is connected</li>
               <li className={profileComplete ? "done" : ""}>Profile is ready for discovery</li>
               <li className={Object.keys(swipes).length > 0 ? "done" : ""}>You have started browsing dogs</li>
               <li className={matches.length > 0 ? "done" : ""}>You have mutual matches</li>
@@ -654,7 +822,7 @@ export default function App() {
             <p className="eyebrow">Connection</p>
             <p>
               {hasSupabaseEnv
-                ? "Supabase env vars are configured, so this mock UI is ready to be replaced with real auth and data next."
+                ? "Supabase env vars are configured, and auth is live. Next up is saving profiles, swipes, and matches to the database."
                 : "Add your Supabase frontend env vars in Vercel and locally when you are ready to hook up real data."}
             </p>
           </section>

@@ -3,7 +3,7 @@
   font-family: "Space Grotesk", "Segoe UI", sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #1f1c18;
+  color: #231b15;
   background:
     radial-gradient(circle at top left, rgba(255, 222, 174, 0.92), transparent 34%),
     radial-gradient(circle at top right, rgba(248, 171, 128, 0.78), transparent 30%),
@@ -12,10 +12,8 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  --ink: #231b15;
   --muted: #665446;
   --panel: rgba(255, 252, 247, 0.82);
-  --panel-strong: #fffdf9;
   --line: rgba(89, 61, 38, 0.12);
   --accent: #d56c3b;
   --accent-strong: #a84c23;
@@ -88,9 +86,9 @@ dd {
 .dog-card,
 .empty-card,
 .chat-shell,
-
 .park-card,
-.match-card {
+.match-card,
+.auth-panel {
   background: var(--panel);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
@@ -109,7 +107,8 @@ dd {
 .topbar h1,
 .hero-panel h2,
 .section-heading h2,
-.sidebar-card h2 {
+.sidebar-card h2,
+.auth-panel h2 {
   font-family: "Fraunces", Georgia, serif;
   line-height: 0.96;
   letter-spacing: -0.03em;
@@ -165,7 +164,8 @@ dd {
   overflow-x: auto;
 }
 
-.tab {
+.tab,
+.mini-tab {
   white-space: nowrap;
   border-radius: 999px;
   padding: 0.8rem 1rem;
@@ -173,7 +173,8 @@ dd {
   font-weight: 700;
 }
 
-.tab.active {
+.tab.active,
+.mini-tab.active {
   background: var(--accent);
   color: #fffaf3;
 }
@@ -206,15 +207,38 @@ dd {
   gap: 1.25rem;
 }
 
+.auth-panel,
 .hero-panel {
   border-radius: 30px;
   padding: 1.5rem;
   display: grid;
-  gap: 1.5rem;
+  gap: 1.25rem;
+}
+
+.auth-panel {
+  margin-bottom: 1.25rem;
+}
+
+.auth-form-wrap,
+.auth-form,
+.auth-connected {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.auth-toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.auth-form {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
 }
 
 .hero-panel h2,
-.section-heading h2 {
+.section-heading h2,
+.auth-panel h2 {
   font-size: clamp(1.8rem, 3vw, 2.8rem);
   max-width: 16ch;
 }
@@ -227,7 +251,9 @@ dd {
 .chat-header p,
 .next-card p,
 .dog-blurb,
-.section-heading p {
+.section-heading p,
+.auth-panel p,
+.toggle-field small {
   color: var(--muted);
 }
 
@@ -276,14 +302,12 @@ dd {
 }
 
 .info-card,
-
 .park-card {
   border-radius: 26px;
   padding: 1.35rem;
 }
 
 .info-card h3,
-.spec-card h3,
 .form-card h3,
 .park-card h3,
 .empty-card h3,
@@ -336,7 +360,7 @@ select {
   border: 1px solid rgba(89, 61, 38, 0.14);
   background: rgba(255, 255, 255, 0.9);
   padding: 0.85rem 0.95rem;
-  color: var(--ink);
+  color: #231b15;
 }
 
 textarea {
@@ -346,6 +370,23 @@ textarea {
 .field-hint {
   font-size: 0.9rem;
   color: var(--muted);
+}
+
+.toggle-field {
+  gap: 0.7rem;
+}
+
+.toggle-button {
+  justify-self: start;
+  border-radius: 999px;
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(89, 61, 38, 0.08);
+}
+
+.toggle-button.enabled {
+  background: rgba(217, 239, 208, 0.88);
 }
 
 .dog-card {
@@ -409,7 +450,8 @@ textarea {
   gap: 0.75rem;
 }
 
-.button {
+.button,
+.mini-action {
   min-height: 3rem;
   padding: 0.8rem 1.2rem;
   border-radius: 999px;
@@ -420,7 +462,9 @@ textarea {
 .button:hover,
 .match-card:hover,
 .tab:hover,
-.mini-action:hover {
+.mini-action:hover,
+.mini-tab:hover,
+.toggle-button:hover {
   transform: translateY(-1px);
 }
 
@@ -433,7 +477,7 @@ textarea {
 .mini-action {
   background: rgba(255, 255, 255, 0.78);
   border: 1px solid rgba(89, 61, 38, 0.08);
-  color: var(--ink);
+  color: #231b15;
 }
 
 .empty-card {
@@ -545,6 +589,15 @@ textarea {
   background: #6bb36b;
 }
 
+.card-kicker {
+  display: inline-block;
+  margin-bottom: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  color: var(--accent-strong);
+}
+
 @media (max-width: 1080px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
@@ -563,7 +616,8 @@ textarea {
   .metric-grid,
   .sidebar-panel,
   .dog-card,
-  .detail-grid {
+  .detail-grid,
+  .auth-form {
     grid-template-columns: 1fr;
   }
 
@@ -579,15 +633,6 @@ textarea {
   }
 }
 
-.card-kicker {
-  display: inline-block;
-  margin-bottom: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 0.75rem;
-  color: var(--accent-strong);
-}
-
 @media (max-width: 640px) {
   .app-shell {
     width: min(100% - 1rem, 1240px);
@@ -598,18 +643,20 @@ textarea {
   .primary-panel,
   .sidebar-card,
   .hero-panel,
+  .auth-panel,
   .form-card,
   .chat-shell,
   .empty-card,
   .info-card,
-  
   .park-card {
     padding: 1.1rem;
   }
 
   .action-row,
   .composer-row,
-  .inline-actions {
+  .inline-actions,
+  .auth-toggle,
+  .auth-connected {
     flex-direction: column;
   }
 
@@ -617,6 +664,3 @@ textarea {
     max-width: 100%;
   }
 }
-
-
-
