@@ -127,24 +127,24 @@ const sampleCandidates: CandidateDog[] = [
 ];
 
 const initialOwner: OwnerProfile = {
-  name: "Travis",
-  email: "travis@example.com",
-  city: "Washington, DC",
+  name: "",
+  email: "",
+  city: "",
   preferredRadiusMiles: 5,
   meetupStyle: "either",
   shareApproximateLocation: false,
 };
 
 const initialDog: DogProfile = {
-  name: "Mochi",
-  age: "2 years",
-  breed: "Corgi mix",
-  size: "Medium",
-  energyLevel: "Medium-high",
-  temperament: "Friendly, playful, a little bossy",
-  leashBehavior: "Good",
-  bio: "Loves fetch, polite greeters, and parks with room to sprint.",
-  favoriteParkId: "meridian",
+  name: "",
+  age: "",
+  breed: "",
+  size: "",
+  energyLevel: "",
+  temperament: "",
+  leashBehavior: "",
+  bio: "",
+  favoriteParkId: "",
 };
 
 const tabs: { id: View; label: string }[] = [
@@ -157,7 +157,7 @@ const tabs: { id: View; label: string }[] = [
 ];
 
 function parkName(parkId: string) {
-  return parks.find((park) => park.id === parkId)?.name ?? "Favorite park";
+  return parks.find((park) => park.id === parkId)?.name ?? "Choose a park";
 }
 
 export default function App() {
@@ -167,17 +167,16 @@ export default function App() {
   const [swipes, setSwipes] = useState<Record<string, SwipeAction>>({});
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
-  const [draftMessage, setDraftMessage] = useState("Want to meet at Meridian this weekend?");
+  const [draftMessage, setDraftMessage] = useState("Want to meet at a park this weekend?");
   const [authMode, setAuthMode] = useState<AuthMode>("sign-up");
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
-  const [authStatus, setAuthStatus] = useState("Connect your account to save your dog's profile.");
+  const [authStatus, setAuthStatus] = useState("Use an account if you want your profile and matches to save across devices.");
   const [authLoading, setAuthLoading] = useState(false);
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
 
   const profileComplete = Boolean(
     owner.name &&
-      owner.email &&
       owner.city &&
       dog.name &&
       dog.breed &&
@@ -198,6 +197,9 @@ export default function App() {
     [matches, selectedMatchId],
   );
 
+  const displayDogName = dog.name || "Your dog";
+  const displayDogSummary = [dog.breed || "Breed not set", dog.age || "Age not set", dog.energyLevel || "Energy not set"].join(" - ");
+
   useEffect(() => {
     if (!hasSupabaseEnv || !supabase) {
       return undefined;
@@ -215,7 +217,7 @@ export default function App() {
       setSessionEmail(email);
       if (email) {
         setOwner((current) => ({ ...current, email }));
-        setAuthStatus("You're signed in and ready to save progress.");
+        setAuthStatus("You're signed in. Your progress can be saved.");
       }
     });
 
@@ -226,9 +228,9 @@ export default function App() {
       setSessionEmail(email);
       if (email) {
         setOwner((current) => ({ ...current, email }));
-        setAuthStatus("You're signed in and ready to save progress.");
+        setAuthStatus("You're signed in. Your progress can be saved.");
       } else {
-        setAuthStatus("Connect your account to save your dog's profile.");
+        setAuthStatus("Use an account if you want your profile and matches to save across devices.");
       }
     });
 
@@ -248,7 +250,7 @@ export default function App() {
 
   async function handleAuthSubmit() {
     if (!hasSupabaseEnv || !supabase) {
-      setAuthStatus("Supabase env vars are missing. Add them locally and in Vercel first.");
+      setAuthStatus("Account features are not configured yet.");
       return;
     }
 
@@ -275,8 +277,8 @@ export default function App() {
     setOwner((current) => ({ ...current, email: authEmail }));
     setAuthStatus(
       authMode === "sign-up"
-        ? "Account created. Check your inbox if email confirmation is enabled."
-        : "Signed in. Your profile can now be saved to Supabase.",
+        ? "Account created. Check your inbox if confirmation is turned on."
+        : "Signed in. Your progress can now be saved.",
     );
   }
 
@@ -290,7 +292,7 @@ export default function App() {
     }
 
     setSessionEmail(null);
-    setAuthStatus("Signed out.");
+    setAuthStatus("Signed out. You can still browse without an account.");
   }
 
   function handleSwipe(action: SwipeAction) {
@@ -338,7 +340,7 @@ export default function App() {
                 ...match.messages,
                 {
                   id: `message-${match.id}-${match.messages.length + 1}`,
-                  sender: owner.name,
+                  sender: owner.name || "You",
                   body: draftMessage.trim(),
                 },
               ],
@@ -381,8 +383,8 @@ export default function App() {
         <section className="primary-panel">
           <section className="auth-panel">
             <div>
-              <p className="eyebrow">Account</p>
-              <h2>{sessionEmail ? "You're connected to Supabase." : "Sign in to save your profile."}</h2>
+              <p className="eyebrow">Save your progress</p>
+              <h2>{sessionEmail ? "You're signed in." : "An account is optional."}</h2>
               <p className="helper-copy">{authStatus}</p>
             </div>
 
@@ -436,8 +438,8 @@ export default function App() {
             <div className="stack-lg">
               <div className="hero-panel">
                 <div>
-                  <p className="eyebrow">Welcome back</p>
-                  <h2>{dog.name} is ready for a new park friend.</h2>
+                  <p className="eyebrow">Welcome</p>
+                  <h2>{displayDogName} is ready for a new park friend.</h2>
                   <p className="lead">
                     Browse nearby dogs, look for a good energy match, and move the conversation into a
                     public park meetup when it feels right.
@@ -476,10 +478,9 @@ export default function App() {
                 </article>
                 <article className="info-card soft">
                   <p className="card-kicker">Meetup vibe</p>
-                  <h3>{parkName(dog.favoriteParkId)}</h3>
+                  <h3>{dog.favoriteParkId ? parkName(dog.favoriteParkId) : "Choose a favorite park"}</h3>
                   <p>
-                    Your profile highlights this park first when a conversation starts, so matches have an
-                    easy public meetup suggestion right away.
+                    Adding a favorite park makes it easier to suggest a public place right away when a match happens.
                   </p>
                 </article>
               </div>
@@ -503,15 +504,15 @@ export default function App() {
                   <h3>Owner details</h3>
                   <label>
                     Name
-                    <input value={owner.name} onChange={(event) => handleOwnerChange("name", event.target.value)} />
+                    <input placeholder="Your name" value={owner.name} onChange={(event) => handleOwnerChange("name", event.target.value)} />
                   </label>
                   <label>
                     Email
-                    <input value={owner.email} onChange={(event) => handleOwnerChange("email", event.target.value)} />
+                    <input placeholder="Optional unless you want to save" value={owner.email} onChange={(event) => handleOwnerChange("email", event.target.value)} />
                   </label>
                   <label>
                     City
-                    <input value={owner.city} onChange={(event) => handleOwnerChange("city", event.target.value)} />
+                    <input placeholder="City" value={owner.city} onChange={(event) => handleOwnerChange("city", event.target.value)} />
                   </label>
                   <label>
                     Preferred radius
@@ -553,31 +554,31 @@ export default function App() {
                   <h3>Dog profile</h3>
                   <label>
                     Dog name
-                    <input value={dog.name} onChange={(event) => handleDogChange("name", event.target.value)} />
+                    <input placeholder="Dog name" value={dog.name} onChange={(event) => handleDogChange("name", event.target.value)} />
                   </label>
                   <label>
                     Age
-                    <input value={dog.age} onChange={(event) => handleDogChange("age", event.target.value)} />
+                    <input placeholder="Age" value={dog.age} onChange={(event) => handleDogChange("age", event.target.value)} />
                   </label>
                   <label>
                     Breed
-                    <input value={dog.breed} onChange={(event) => handleDogChange("breed", event.target.value)} />
+                    <input placeholder="Breed" value={dog.breed} onChange={(event) => handleDogChange("breed", event.target.value)} />
                   </label>
                   <label>
                     Size
-                    <input value={dog.size} onChange={(event) => handleDogChange("size", event.target.value)} />
+                    <input placeholder="Size" value={dog.size} onChange={(event) => handleDogChange("size", event.target.value)} />
                   </label>
                   <label>
                     Energy level
-                    <input value={dog.energyLevel} onChange={(event) => handleDogChange("energyLevel", event.target.value)} />
+                    <input placeholder="Energy level" value={dog.energyLevel} onChange={(event) => handleDogChange("energyLevel", event.target.value)} />
                   </label>
                   <label>
                     Temperament
-                    <input value={dog.temperament} onChange={(event) => handleDogChange("temperament", event.target.value)} />
+                    <input placeholder="Temperament" value={dog.temperament} onChange={(event) => handleDogChange("temperament", event.target.value)} />
                   </label>
                   <label>
                     Leash behavior
-                    <input value={dog.leashBehavior} onChange={(event) => handleDogChange("leashBehavior", event.target.value)} />
+                    <input placeholder="Leash behavior" value={dog.leashBehavior} onChange={(event) => handleDogChange("leashBehavior", event.target.value)} />
                   </label>
                   <label>
                     Favorite park
@@ -585,6 +586,7 @@ export default function App() {
                       value={dog.favoriteParkId}
                       onChange={(event) => handleDogChange("favoriteParkId", event.target.value)}
                     >
+                      <option value="">Choose a park</option>
                       {parks.map((park) => (
                         <option key={park.id} value={park.id}>
                           {park.name}
@@ -594,7 +596,7 @@ export default function App() {
                   </label>
                   <label>
                     Bio
-                    <textarea value={dog.bio} onChange={(event) => handleDogChange("bio", event.target.value)} rows={4} />
+                    <textarea placeholder="A few lines about how your dog likes to play" value={dog.bio} onChange={(event) => handleDogChange("bio", event.target.value)} rows={4} />
                   </label>
                 </article>
               </div>
@@ -738,7 +740,7 @@ export default function App() {
                     {selectedMatch.messages.map((message) => (
                       <div
                         key={message.id}
-                        className={`message-bubble ${message.sender === owner.name ? "outgoing" : "incoming"}`}
+                        className={`message-bubble ${message.sender === (owner.name || "You") ? "outgoing" : "incoming"}`}
                       >
                         <strong>{message.sender}</strong>
                         <p>{message.body}</p>
@@ -796,21 +798,21 @@ export default function App() {
         <aside className="sidebar-panel">
           <section className="sidebar-card profile-card">
             <p className="eyebrow">Your dog</p>
-            <h2>{dog.name}</h2>
-            <p>{dog.breed} - {dog.age} - {dog.energyLevel}</p>
+            <h2>{displayDogName}</h2>
+            <p>{displayDogSummary}</p>
             <ul className="plain-list compact">
-              <li>Owner: {owner.name}</li>
-              <li>City: {owner.city}</li>
+              <li>Owner: {owner.name || "Not set yet"}</li>
+              <li>City: {owner.city || "Not set yet"}</li>
               <li>Meetup style: {owner.meetupStyle}</li>
               <li>Approximate location sharing: {owner.shareApproximateLocation ? "On" : "Off"}</li>
-              <li>Favorite park: {parkName(dog.favoriteParkId)}</li>
+              <li>Favorite park: {dog.favoriteParkId ? parkName(dog.favoriteParkId) : "Not chosen yet"}</li>
             </ul>
           </section>
 
           <section className="sidebar-card checklist-card">
             <p className="eyebrow">At a glance</p>
             <ul className="check-list">
-              <li className={Boolean(sessionEmail) ? "done" : ""}>Account is connected</li>
+              <li className={Boolean(sessionEmail) ? "done" : ""}>Account connected for saved progress</li>
               <li className={profileComplete ? "done" : ""}>Profile is ready for discovery</li>
               <li className={Object.keys(swipes).length > 0 ? "done" : ""}>You have started browsing dogs</li>
               <li className={matches.length > 0 ? "done" : ""}>You have mutual matches</li>
@@ -819,11 +821,11 @@ export default function App() {
           </section>
 
           <section className="sidebar-card next-card">
-            <p className="eyebrow">Connection</p>
+            <p className="eyebrow">Saved progress</p>
             <p>
-              {hasSupabaseEnv
-                ? "Supabase env vars are configured, and auth is live. Next up is saving profiles, swipes, and matches to the database."
-                : "Add your Supabase frontend env vars in Vercel and locally when you are ready to hook up real data."}
+              {sessionEmail
+                ? "Your account is connected, so saved profiles and matches can come next."
+                : "You can browse without an account, but signing in later will be the best way to keep your progress."}
             </p>
           </section>
         </aside>
