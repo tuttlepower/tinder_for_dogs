@@ -1,453 +1,395 @@
-It assumes React frontend now, Supabase/Vercel later, and config-driven behavior via YAML.
+# Dog Park Match MVP Specification
 
-Dog Park Match – MVP Specification
+## Product Summary
 
-1. Product Summary
+Dog Park Match is a dog-first app for finding compatible playmates nearby. Owners create a profile for one dog, browse other dogs in their area, like or pass, and start a conversation when there is a mutual match.
 
-Dog Park Match is a location-based dog playdate matching app.
+The MVP is focused on one end-to-end loop:
 
-The application allows dog owners to:
+owner signs up -> creates one dog profile -> browses nearby dogs -> likes or passes -> gets a mutual match -> sends a first message -> agrees on a park
 
-create profiles for their dogs
+The product is not human dating. The dog profile is the primary unit of discovery, and meetup guidance is centered on public dog parks.
 
-discover compatible dogs nearby
+## Target User and Core Problem
 
-swipe to indicate interest
+### Target user
 
-match with compatible dogs
+The initial user is an urban dog owner who wants to help their dog socialize but does not have an easy way to find nearby dogs with compatible size, energy, and temperament.
 
-message owners
+### Core problem
 
-coordinate meetups at local dog parks
+Dog owners can meet people organically at parks, but that process is inconsistent and hard to plan around. They need a lightweight way to:
 
-The product is dog-first, not human dating.
-Interactions are centered around dog compatibility and safe meetups.
+- discover dogs nearby
+- quickly assess compatibility
+- connect with the owner
+- coordinate a first meetup in a public place
 
-Initial focus is dense urban dog communities.
+## MVP Goal and Success Metrics
 
-2. MVP Goals
+### Goal
 
-Validate three hypotheses:
+Validate that urban dog owners will use a dog-first matching flow to find compatible playmates and start conversations that can lead to public park meetups.
 
-Dog owners want help finding compatible playmates
+### Success metrics
 
-Owners are willing to meet new dogs at public parks
+The MVP should measure these early signals:
 
-A Tinder-style interaction model works for dog matching
+- profile completion rate
+- swipe activity per active user
+- match rate
+- percentage of matches that receive at least one message
+- percentage of conversations that reference a park or meetup intent
 
-Success metric (early prototype):
+## In Scope
 
-users create dog profiles
+The MVP includes only the minimum usable product needed to validate the core loop:
 
-users swipe on dogs
+- owner account creation and login
+- one active dog profile per owner
+- dog photo upload
+- onboarding with city, meetup style, and preferred radius
+- nearby dog discovery
+- like and pass actions
+- automatic mutual match creation
+- basic one-to-one chat between matched owners
+- favorite parks or park suggestions as lightweight meetup context
+- block user
+- report user
+- in-app guidance encouraging public park meetups
 
-matches occur
+## Out of Scope
 
-conversations start
+The following are explicitly not part of the MVP:
 
-3. Out of Scope (for MVP)
+- vaccination verification
+- identity verification
+- advanced safety checks
+- ML-based matching
+- reputation scoring
+- breeder marketplace
+- payment features
+- push notifications
+- complex moderation tooling
+- event hosting infrastructure
+- support for multiple dogs per owner
+- exact address sharing
+- standalone dog park exploration as a major feature
+- radar chart as a required experience
+- YAML configuration as a product requirement
 
-Not included initially:
+## Primary User Flow
 
-vaccination verification
+### 1. Discover the product
 
-ML matching
+The landing page explains the concept, makes the dog-first positioning clear, and drives the user into signup.
 
-breeder marketplace
+### 2. Create an account
 
-payment features
+The user signs up or logs in with email and password.
 
-push notifications
+### 3. Complete onboarding
 
-complex moderation tooling
+The user sets:
 
-advanced safety checks
+- city
+- preferred meetup style: one-on-one, group, or either
+- preferred radius in kilometers
 
-event hosting infrastructure
+### 4. Create a dog profile
 
-These may be added later.
+The user creates one dog profile with at least one photo before entering discovery.
 
-4. Core Entities
-   User
+### 5. Browse nearby dogs
+
+The app shows eligible dog profiles within the user's preferred radius. Each card includes:
+
+- primary dog photo
+- dog name
+- age or age group
+- breed
+- size
+- short compatibility hints
+
+The user can like or pass each profile.
+
+### 6. Get a match
+
+If both dogs like each other, the app creates a match automatically and shows a match confirmation screen.
+
+### 7. Start a conversation
+
+Matched owners can exchange messages. The chat can include suggested prompts such as:
+
+- "Want to meet at a park this weekend?"
+- "How does your dog do with high-energy play?"
+
+### 8. Pick a public meetup context
+
+The match or chat flow can show favorite parks or suggested parks to help coordinate a first meetup without requiring a separate park product.
+
+## Core Entities
+
+### User
 
 Represents the dog owner.
 
 Fields:
 
-id
-name
-email
-location_city
-preferred_meetup_style (one-on-one | group | either)
-preferred_radius_km
-created_at
-Dog
+- `id`
+- `name`
+- `email`
+- `city`
+- `preferred_radius_km`
+- `meetup_style`
+- `created_at`
 
-Primary profile unit.
+### Dog
+
+Primary discovery profile.
 
 Fields:
 
-id
-owner_id
-name
-age
-breed
-size
-sex
-energy_level
-temperament
-leash_behavior
-vaccinated_self_reported (bool)
-open_to_small_dogs
-open_to_large_dogs
-open_to_puppies
-open_to_seniors
-bio
-created_at
-Dog Photo
-id
-dog_id
-image_url
+- `id`
+- `owner_id`
+- `name`
+- `age` or `age_group`
+- `breed`
+- `size`
+- `sex`
+- `energy_level`
+- `temperament_tags`
+- `leash_behavior`
+- `vaccinated_self_reported`
+- `bio`
+- `created_at`
+
+### DogPhoto
+
+Stores dog images for the profile.
+
+Fields:
+
+- `id`
+- `dog_id`
+- `image_url`
+- `sort_order`
 
 Rules:
 
-photos should primarily show dogs
+- at least one photo is required before discovery
+- photos should primarily show the dog
+- humans may appear but should not be the focus
 
-humans discouraged but allowed
+### Park
 
-Park
+Represents a public dog meetup location.
 
-Public dog meetup locations.
+Fields:
 
-id
-name
-city
-latitude
-longitude
+- `id`
+- `name`
+- `city`
+- `latitude`
+- `longitude`
 
-Initial data can come from:
+Initial park data can come from a manual seed list. External map enrichment is optional.
 
-OpenStreetMap
+### UserFavoritePark
 
-manual seed list
+Links users to parks they prefer for meetups.
 
-Favorite Park
-user_id
-park_id
+Fields:
 
-Allows park overlap matching.
+- `user_id`
+- `park_id`
 
-Swipe
+### Swipe
 
-Tracks interest signals.
+Stores a like or pass decision from one dog profile to another.
 
-id
-from_dog_id
-to_dog_id
-action (like | pass)
-timestamp
-Match
+Fields:
 
-Created when both dogs swipe like.
+- `id`
+- `from_dog_id`
+- `to_dog_id`
+- `action`
+- `created_at`
 
-id
-dog_a_id
-dog_b_id
-created_at
-Message
+### Match
+
+Created when both dogs like each other.
+
+Fields:
+
+- `id`
+- `dog_a_id`
+- `dog_b_id`
+- `created_at`
+- `status`
+
+### Message
 
 Chat between matched owners.
 
-id
-match_id
-sender_user_id
-message_body
-timestamp
-Report
+Fields:
 
-Safety reporting.
+- `id`
+- `match_id`
+- `sender_user_id`
+- `body`
+- `created_at`
 
-id
-reporter_user_id
-reported_user_id
-match_id
-reason
-timestamp 5. Dog Profile Attributes
+### Report
 
-These will also drive matching.
-
-Core attributes:
-
-Attribute Example
-age 3
-breed Golden Retriever
-size medium
-energy_level high
-temperament friendly
-leash_behavior good
-vaccinated yes 6. Matching Logic (MVP)
-
-Initial matching uses rule-based scoring, not ML.
-
-Compatibility score (0–100).
-
-Example weights:
-
-distance_weight = 25
-energy_match_weight = 20
-size_match_weight = 15
-temperament_weight = 15
-park_overlap_weight = 15
-leash_behavior_weight = 10
-
-Score is computed from normalized feature comparisons.
-
-Pairs with score above threshold are shown first.
-
-Swiping remains the final decision.
-
-7. Location Rules
-
-Users configure:
-
-preferred_radius_km
-
-Dog candidates shown must satisfy:
-
-distance <= preferred_radius
-
-Recommended defaults:
-
-5km city
-10km suburban 8. Safety Model
-
-MVP protections:
-
-block user
-
-report user
-
-report dog
-
-safety guidelines
-
-public park meetups encouraged
-
-Future improvements:
-
-vaccination verification
-
-identity verification
-
-reputation scoring
-
-9. Radar Chart Visualization
-
-Dog profiles may display a compatibility radar chart.
-
-Possible axes:
-
-energy
-friendliness
-playfulness
-leash manners
-park flexibility
-training level
-
-Example visualization:
-
-radar chart
-
-This allows users to quickly compare dog personalities.
-
-10. UI Screens (MVP)
-1. Landing Page
-
-Purpose:
-
-explain concept
-
-invite sign up
-
-2. User Signup
+Safety reporting for user behavior connected to a match.
 
 Fields:
 
-name
-email
-password
-city
-preferred meetup style
-preferred radius 3. Create Dog Profile
+- `id`
+- `reporter_user_id`
+- `reported_user_id`
+- `match_id`
+- `reason`
+- `created_at`
 
-Fields:
+### MVP constraints
 
-dog name
-age
-breed
-size
-energy level
-temperament
-leash behavior
-bio
-photo upload 4. Swipe Screen
+- one active dog profile per owner
+- only matched users can message each other
+- users cannot browse without a complete dog profile
+- users cannot see exact home addresses or precise residential locations
+- location shown in the product should be city-level or neighborhood-level only
 
-Shows:
+## Matching and Ranking Rules
 
-dog photo
+The MVP uses simple eligibility and ranking, not a complex compatibility engine.
 
-name
+### Eligibility rules
 
-age
+A dog profile can be shown in discovery only if:
 
-breed
+- it is within the current user's preferred radius
+- it belongs to a user who is not blocked
+- it is not in a disqualifying reported or removed state
+- it has a complete dog profile
+- it has at least one photo
 
-radar chart
+### Ranking signals
 
-compatibility score
+Eligible dogs should be ordered using lightweight signals such as:
 
-Actions:
+- proximity
+- size compatibility
+- energy compatibility
+- temperament compatibility
+- favorite park overlap, if available
 
-swipe left -> pass
-swipe right -> like 5. Match Screen
+The exact numeric weights do not need to be part of the product spec. Swiping remains the final decision-making step for the user.
 
-Shows new matches.
+## Safety and Trust
 
-6. Chat Screen
+The MVP should provide lightweight safety measures appropriate for an early product:
 
-Messaging between owners.
+- users can block another user
+- users can report another user from the profile, match, or chat context
+- the app encourages first meetings in public dog parks
+- the app does not expose exact home addresses
+- terms and safety copy should make clear that owners remain responsible for dog behavior and meetup choices
 
-7. Dog Parks Screen
+Formal legal review is required before commercialization.
 
-Displays:
+## Screens and UX Requirements
 
-nearby parks
+### Landing page
 
-user's favorite parks
+- explains the value proposition clearly
+- establishes the dog-first positioning
+- provides a clear path to signup
 
-potential meetup locations
+### Signup and login
 
-11. Configuration (YAML)
+- supports email and password authentication
+- collects only the minimum required fields
 
-All key parameters configurable.
+### Onboarding
 
-Example config.yaml:
+- collects city, meetup style, and preferred radius
+- leads directly into dog profile creation
 
-app:
-name: Dog Park Match
-version: 0.1
+### Dog profile creation
 
-matching:
-distance_weight: 25
-energy_weight: 20
-size_weight: 15
-temperament_weight: 15
-park_overlap_weight: 15
-leash_weight: 10
-minimum_match_score: 50
+- requires dog basics and at least one photo
+- prevents incomplete profiles from entering discovery
 
-location:
-default_radius_km: 5
-max_radius_km: 20
+### Discovery or swipe screen
 
-safety:
-allow_reporting: true
-allow_blocking: true
+- shows one dog profile at a time
+- includes primary photo and key dog attributes
+- supports like and pass interactions
+- handles empty states when no nearby dogs are available
 
-ui:
-radar_chart_enabled: true
+### Match screen
 
-Config should be loaded client-side initially.
+- confirms mutual likes
+- provides a clear action to open chat
 
-Later it can move server-side.
+### Chat screen
 
-12. Initial Tech Stack
+- allows matched owners to exchange messages
+- supports lightweight park suggestions or favorite park context
+- exposes block and report actions
 
-Prototype stage:
+## Technical Approach for MVP
 
-Frontend
+The MVP should be built as a usable web product, not just a static prototype.
 
-React
-TypeScript
-Vite
-Tailwind
+### Recommended stack
 
-Hosting
-
-GitHub Pages (initial demo)
-
-Future backend
-
-Supabase
-PostgreSQL
-Auth
-Realtime messaging
-
-Deployment
-
-Vercel
-
-Maps
-
-Mapbox or Google Maps 13. Development Phases
-Phase 1 – Static Prototype
-
-fake dog data
-
-swipe UI
-
-radar chart
-
-park list
-
-Phase 2 – User Accounts
-
-auth
-
-real dog profiles
-
-image upload
-
-Phase 3 – Matching Engine
-
-swipes
-
-matches
-
-compatibility scoring
-
-Phase 4 – Messaging
-
-real chat
-
-meetup coordination
-
-14. Legal Disclaimer
-
-All interactions occur at user risk.
-
-Application provides matchmaking only, not supervision.
-
-Suggested terms:
-
-owners responsible for dog behavior
-
-meetups should occur in public locations
-
-platform not liable for injuries or damages
-
-Formal legal review required if commercialized.
-
-If you want, I can also next produce:
-
-A repo structure for the project
-
-The YAML config loader
-
-The React component structure
-
-The swipe algorithm
-
-The compatibility scoring code
-
-so you could realistically start building this in a few hours.
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- Supabase Auth for authentication
+- Supabase Postgres for primary data storage
+- Supabase Storage for dog photos
+- Supabase Realtime or database-backed polling for chat
+- Vercel for deployment
+
+### Technical notes
+
+- choose a single deployment target that supports auth, storage, and realtime needs
+- treat park data as support infrastructure rather than a separate product area
+- manual seed park data is acceptable for v1
+- configuration details such as YAML, tunable weights, or admin controls are implementation details and should not shape MVP scope
+
+## Acceptance Criteria
+
+The MVP spec is complete when it supports all of the following:
+
+- a new user can create an account and complete onboarding
+- a user can create one dog profile with at least one photo
+- incomplete dog profiles are prevented from entering discovery
+- a user can view eligible nearby dogs within their preferred radius
+- a user can like or pass dog profiles
+- a mutual like creates a match automatically
+- matched users can exchange messages
+- users can reference or select a park as meetup context
+- a user can block or report another user from the match or chat context
+- the app never exposes exact private addresses
+- the UI handles the case where no nearby dogs are available
+
+## Post-MVP / Later Ideas
+
+Possible future additions after the core loop is validated:
+
+- richer compatibility explanations or visualizations such as radar charts
+- verification flows for vaccination or owner identity
+- advanced moderation and trust tooling
+- smarter ranking or ML-assisted matching
+- multi-dog household support
+- push notifications
+- event hosting
+- reputation systems
+- richer map exploration and park discovery
+- monetization or premium features
